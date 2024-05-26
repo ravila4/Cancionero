@@ -51,10 +51,16 @@
               <object class="GtkStackPage">
                 <property name="name">song_detail</property>
                 <property name="child">
-                  <object class="GtkTextView" id="song_detail_textview">
-                    <property name="editable">False</property>
-                    <property name="wrap-mode">word</property>
-                    <property name="css-classes">monospace</property>
+                  <object class="GtkScrolledWindow">
+                    <property name="hscrollbar-policy">automatic</property>
+                    <property name="vscrollbar-policy">automatic</property>
+                    <child>
+                      <object class="GtkTextView" id="song_detail_textview">
+                        <property name="editable">False</property>
+                        <property name="wrap-mode">none</property>
+                        <property name="css-classes">monospace</property>
+                      </object>
+                    </child>
                   </object>
                 </property>
               </object>
@@ -81,3 +87,4 @@
     </section>
   </menu>
 </interface>
+
