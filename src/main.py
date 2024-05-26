@@ -51,12 +51,12 @@ class CancioneroApplication(Adw.Application):
     def on_about_action(self, widget, _):
         """Callback for the app.about action."""
         about = Adw.AboutWindow(transient_for=self.props.active_window,
-                                application_name='cancionero',
+                                application_name='Cancionero',
                                 application_icon='com.github.ravila4.Cancionero',
-                                developer_name='Ricardo',
+                                developer_name='Ricardo Avila',
                                 version='0.1.0',
-                                developers=['Ricardo'],
-                                copyright='© 2024 Ricardo')
+                                developers=['Ricardo Avila'],
+                                copyright='© 2024 Ricardo Avila')
         about.present()
 
     def on_preferences_action(self, widget, _):
