@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=cancionero
+Exec=cancionero
+Icon=com.github.ravila4.Cancionero
+Terminal=false
+Type=Application
+Categories=GTK;
+StartupNotify=true

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="cancionero">
+	<schema id="com.github.ravila4.Cancionero" path="/com/github/ravila4/Cancionero/">
+	</schema>
+</schemalist>

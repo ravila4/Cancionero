@@ -1,0 +1,6 @@
+data/com.github.ravila4.Cancionero.desktop.in
+data/com.github.ravila4.Cancionero.metainfo.xml.in
+data/com.github.ravila4.Cancionero.gschema.xml
+src/main.py
+src/window.py
+src/window.ui
