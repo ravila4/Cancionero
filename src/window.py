@@ -10,6 +10,8 @@ from .ug import ug_search, ug_tab, SearchResult
 class CancioneroWindow(Adw.ApplicationWindow):
     __gtype_name__ = "CancioneroWindow"
 
+    back_button = Gtk.Template.Child()
+    forward_button = Gtk.Template.Child()
     search_entry = Gtk.Template.Child()
     search_button = Gtk.Template.Child()
     results_listbox = Gtk.Template.Child()
@@ -20,6 +22,8 @@ class CancioneroWindow(Adw.ApplicationWindow):
         super().__init__(**kwargs)
         self.search_button.connect("clicked", self.on_search_button_clicked)
         self.results_listbox.connect("row-activated", self.on_result_clicked)
+        self.back_button.connect("clicked", self.on_back_button_clicked)
+        self.forward_button.connect("clicked", self.on_forward_button_clicked)
 
     def on_search_button_clicked(self, widget):
         search_query = self.search_entry.get_text()
@@ -27,6 +31,7 @@ class CancioneroWindow(Adw.ApplicationWindow):
 
     def search_songs(self, query):
         # TODO: Rather than store the results to in the class instance, we could implement a disk cache
+        self.content_stack.set_visible_child_name("search_results")
         self.results = ug_search(query)
         self.display_results(self.results)
 
@@ -40,6 +45,8 @@ class CancioneroWindow(Adw.ApplicationWindow):
             row.set_child(label)
             row.connect("activate", self.on_result_clicked, result)
             self.results_listbox.append(row)
+            self.back_button.set_sensitive(False)
+            self.forward_button.set_sensitive(False)
 
     def get_url_from_label(self, label: str):
         # TODO: We probably want to retrieve the url from a cache
@@ -62,3 +69,16 @@ class CancioneroWindow(Adw.ApplicationWindow):
         plain_text = html2text.html2text(song_detail.tab)
         buffer.set_text(plain_text)
         self.content_stack.set_visible_child_name("song_detail")
+        self.back_button.set_sensitive(True)  # Enable back button when viewing song details
+        self.forward_button.set_sensitive(False)  # Disable forward button when on song details page
+
+    def on_back_button_clicked(self, widget):
+        self.content_stack.set_visible_child_name("search_results")
+        self.back_button.set_sensitive(False)  # Disable back button when on search results page
+        self.forward_button.set_sensitive(True)  # Enable forward button when going back to search results
+
+    def on_forward_button_clicked(self, widget):
+        self.content_stack.set_visible_child_name("song_detail")
+        self.back_button.set_sensitive(True)  # Enable back button when viewing song details
+        self.forward_button.set_sensitive(False)  # Disable forward button when on song details page
+
