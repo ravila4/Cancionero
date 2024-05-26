@@ -1,30 +1,64 @@
-# window.py
-#
-# Copyright 2024 Ricardo
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# SPDX-License-Identifier: GPL-3.0-or-later
+from typing import List
 
+import html2text
 from gi.repository import Adw
 from gi.repository import Gtk
+from .ug import ug_search, ug_tab, SearchResult
 
-@Gtk.Template(resource_path='/com/github/ravila4/Cancionero/window.ui')
+
+@Gtk.Template(resource_path="/com/github/ravila4/Cancionero/window.ui")
 class CancioneroWindow(Adw.ApplicationWindow):
-    __gtype_name__ = 'CancioneroWindow'
+    __gtype_name__ = "CancioneroWindow"
 
-    label = Gtk.Template.Child()
+    search_entry = Gtk.Template.Child()
+    search_button = Gtk.Template.Child()
+    results_listbox = Gtk.Template.Child()
+    content_stack = Gtk.Template.Child()
+    song_detail_textview = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.search_button.connect("clicked", self.on_search_button_clicked)
+        self.results_listbox.connect("row-activated", self.on_result_clicked)
+
+    def on_search_button_clicked(self, widget):
+        search_query = self.search_entry.get_text()
+        self.search_songs(search_query)
+
+    def search_songs(self, query):
+        # TODO: Rather than store the results to in the class instance, we could implement a disk cache
+        self.results = ug_search(query)
+        self.display_results(self.results)
+
+    def display_results(self, results: List[SearchResult]):
+        self.results_listbox.remove_all()  # Clear the list box
+        for result in results:
+            row = Gtk.ListBoxRow()
+            label = Gtk.Label(
+                label=f"{result.artist_name} - {result.song_name} (ver {result.version})"
+            )
+            row.set_child(label)
+            row.connect("activate", self.on_result_clicked, result)
+            self.results_listbox.append(row)
+
+    def get_url_from_label(self, label: str):
+        # TODO: We probably want to retrieve the url from a cache
+        for result in self.results:
+            if (
+                label
+                == f"{result.artist_name} - {result.song_name} (ver {result.version})"
+            ):
+                return result.tab_url
+
+    def on_result_clicked(self, listbox, row):
+        result = row.get_child().get_label()
+        _url = self.get_url_from_label(result)
+        song_detail = ug_tab(_url)
+        self.display_song_detail(song_detail)
+
+    def display_song_detail(self, song_detail):
+        # TODO Add vertical and horizontal scroll bars
+        buffer = self.song_detail_textview.get_buffer()
+        plain_text = html2text.html2text(song_detail.tab)
+        buffer.set_text(plain_text)
+        self.content_stack.set_visible_child_name("song_detail")
