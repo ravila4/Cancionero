@@ -83,6 +83,10 @@
                         <property name="editable">False</property>
                         <property name="wrap-mode">none</property>
                         <property name="css-classes">monospace</property>
+                        <property name="margin-start">50</property>
+                        <property name="margin-end">50</property>
+                        <property name="margin-top">20</property>
+                        <property name="margin-bottom">20</property>
                       </object>
                     </child>
                   </object>
