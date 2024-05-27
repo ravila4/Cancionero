@@ -13,19 +13,19 @@ class CancioneroWindow(Adw.ApplicationWindow):
     back_button = Gtk.Template.Child()
     forward_button = Gtk.Template.Child()
     search_entry = Gtk.Template.Child()
-    search_button = Gtk.Template.Child()
     results_listbox = Gtk.Template.Child()
     content_stack = Gtk.Template.Child()
     song_detail_textview = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.search_button.connect("clicked", self.on_search_button_clicked)
+        self.search_entry.connect("activate", self.on_search_entry_activate)
         self.results_listbox.connect("row-activated", self.on_result_clicked)
         self.back_button.connect("clicked", self.on_back_button_clicked)
         self.forward_button.connect("clicked", self.on_forward_button_clicked)
+        self.search_entry.get_style_context().add_class("search-entry-title")
 
-    def on_search_button_clicked(self, widget):
+    def on_search_entry_activate(self, widget):
         search_query = self.search_entry.get_text()
         self.search_songs(search_query)
 
@@ -58,9 +58,10 @@ class CancioneroWindow(Adw.ApplicationWindow):
                 return result.tab_url
 
     def on_result_clicked(self, listbox, row):
-        result = row.get_child().get_label()
-        _url = self.get_url_from_label(result)
-        song_detail = ug_tab(_url)
+        self.current_result = row.get_child().get_label()
+        self.search_entry.set_text(self.current_result)
+        song_url = self.get_url_from_label(self.current_result)
+        song_detail = ug_tab(song_url)
         self.display_song_detail(song_detail)
 
     def display_song_detail(self, song_detail):
@@ -69,16 +70,29 @@ class CancioneroWindow(Adw.ApplicationWindow):
         plain_text = html2text.html2text(song_detail.tab)
         buffer.set_text(plain_text)
         self.content_stack.set_visible_child_name("song_detail")
-        self.back_button.set_sensitive(True)  # Enable back button when viewing song details
-        self.forward_button.set_sensitive(False)  # Disable forward button when on song details page
+        self.back_button.set_sensitive(
+            True
+        )  # Enable back button when viewing song details
+        self.forward_button.set_sensitive(
+            False
+        )  # Disable forward button when on song details page
 
     def on_back_button_clicked(self, widget):
         self.content_stack.set_visible_child_name("search_results")
-        self.back_button.set_sensitive(False)  # Disable back button when on search results page
-        self.forward_button.set_sensitive(True)  # Enable forward button when going back to search results
+        self.search_entry.set_text("")  # Clear the search entry
+        self.back_button.set_sensitive(
+            False
+        )  # Disable back button when on search results page
+        self.forward_button.set_sensitive(
+            True
+        )  # Enable forward button when going back to search results
 
     def on_forward_button_clicked(self, widget):
         self.content_stack.set_visible_child_name("song_detail")
-        self.back_button.set_sensitive(True)  # Enable back button when viewing song details
-        self.forward_button.set_sensitive(False)  # Disable forward button when on song details page
-
+        self.search_entry.set_text(self.current_result)
+        self.back_button.set_sensitive(
+            True
+        )  # Enable back button when viewing song details
+        self.forward_button.set_sensitive(
+            False
+        )  # Disable forward button when on song details page

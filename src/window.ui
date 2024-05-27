@@ -3,8 +3,8 @@
   <requires lib="gtk" version="4.0" />
   <requires lib="Adw" version="1.0" />
   <template class="CancioneroWindow" parent="AdwApplicationWindow">
-    <property name="default-width">800</property>
-    <property name="default-height">1000</property>
+    <property name="default-width">1200</property>
+    <property name="default-height">900</property>
     <property name="content">
       <object class="AdwToolbarView">
         <child type="top">
@@ -27,11 +27,8 @@
                 <child>
                   <object class="GtkSearchEntry" id="search_entry">
                     <property name="placeholder-text">Search songs...</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkButton" id="search_button">
-                    <property name="label">Search</property>
+                    <property name="hexpand">false</property>
+                    <property name="width-chars">30</property>
                   </object>
                 </child>
               </object>
@@ -99,4 +96,3 @@
     </section>
   </menu>
 </interface>
-
