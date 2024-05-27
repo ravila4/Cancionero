@@ -51,7 +51,13 @@
               <object class="GtkStackPage">
                 <property name="name">search_results</property>
                 <property name="child">
-                  <object class="GtkListBox" id="results_listbox">
+                  <object class="GtkScrolledWindow">
+                    <property name="hscrollbar-policy">automatic</property>
+                    <property name="vscrollbar-policy">automatic</property>
+                    <child>
+                      <object class="GtkListBox" id="results_listbox">
+                      </object>
+                    </child>
                   </object>
                 </property>
               </object>
