@@ -25,10 +25,19 @@
               <object class="GtkBox">
                 <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
                 <child>
+                  <object class="GtkBox">
+                    <property name="hexpand">true</property>
+                  </object>
+                </child>
+                <child>
                   <object class="GtkSearchEntry" id="search_entry">
                     <property name="placeholder-text">Search songs...</property>
-                    <property name="hexpand">false</property>
-                    <property name="width-chars">30</property>
+                    <property name="hexpand">true</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="hexpand">true</property>
                   </object>
                 </child>
               </object>
