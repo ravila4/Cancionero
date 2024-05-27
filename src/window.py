@@ -59,13 +59,17 @@ class CancioneroWindow(Adw.ApplicationWindow):
 
     def on_result_clicked(self, listbox, row):
         self.current_result = row.get_child().get_label()
+        # TODO: Set the text in a title label instead, and hide the search bar.
+        # add a search button to switch back and forth.
         self.search_entry.set_text(self.current_result)
         song_url = self.get_url_from_label(self.current_result)
         song_detail = ug_tab(song_url)
         self.display_song_detail(song_detail)
 
     def display_song_detail(self, song_detail):
-        # TODO Add vertical and horizontal scroll bars
+        # TODO: We need a better way to parse the html. Either display it in a webkit element,
+        # or find a more consistent way of converting to text. Right now, a lot of results
+        # are getting mangled.
         buffer = self.song_detail_textview.get_buffer()
         plain_text = html2text.html2text(song_detail.tab)
         buffer.set_text(plain_text)
