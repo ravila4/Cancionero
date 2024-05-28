@@ -57,7 +57,7 @@ class SongDetail:
         self._type = data["store"]["page"]["data"]["tab"]["type"]
         self.rating = int(data["store"]["page"]["data"]["tab"]["rating"])
         self.difficulty = data["store"]["page"]["data"]["tab_view"]["ug_difficulty"]
-        self.appliciture = data["store"]["page"]["data"]["tab_view"]["applicature"]
+        self.applicature = data["store"]["page"]["data"]["tab_view"]["applicature"]
         self.chords = []
         self.fingers_for_strings = []
         if isinstance(data["store"]["page"]["data"]["tab_view"]["meta"], dict):
@@ -75,31 +75,26 @@ class SongDetail:
 
     def fix_tab(self):
         tab = self.tab
-        tab = tab.replace("\r\n", "<br/>")
-        tab = tab.replace(" ", "&nbsp;")
-        tab = tab.replace("[tab]", "")
-        tab = tab.replace("[/tab]", "")
-
         # (?P<root>[A-Ga-g](#|b)?) : Chord root is any letter A - G with an optional sharp or flat at the end
         # (?P<quality>[^[/]+)?  : Chord quality is anything after the root, but before the `/` for the base note
-        # (?P<bass>/[A-Ga-g](#|b)?)? :  Chord quality is anything after the root, including parens in the case of 'm(maj7)'
-        # tab = re.sub(r'\[ch\](?P<root>[A-Ga-g](#|b)?)(?P<quality>[#\w()]+)?(?P<bass>/[A-Ga-g](#|b)?)?\[\/ch\]', self.parse_chord, tab)
-        tab = re.sub(
-            r"\[ch\](?P<root>[A-Ga-g](#|b)?)(?P<quality>[^[/]+)?(?P<bass>/[A-Ga-g](#|b)?)?\[\/ch\]",
-            self.parse_chord,
-            tab,
+        # (?P<bass>/[A-Ga-g](#|b)?)? :  Chord bass is anything after the root, including parens in the case of 'm(maj7)'
+        chord_pattern = re.compile(
+            r"\[ch\](?P<root>[A-Ga-g](#|b)?)(?P<quality>[^[/]+)?(?P<bass>/[A-Ga-g](#|b)?)?\[\/ch\]"
         )
-        self.tab = tab
+        self.chords = []
+        self.chord_positions = []
 
-    def parse_chord(self, chord):
-        root = '<span class="chord-root">%s</span>' % chord.group("root")
-        quality = ""
-        bass = ""
-        if chord.group("quality") is not None:
-            quality = '<span class="chord-quality">%s</span>' % chord.group("quality")
-        if chord.group("bass") is not None:
-            bass = '/<span class="chord-bass">%s</span>' % chord.group("bass")[1:]
-        return '<span class="chord fw-bold">%s</span>' % (root + quality + bass)
+        def parse_chord(match):
+            root = match.group("root")
+            quality = match.group("quality") if match.group("quality") else ""
+            bass = match.group("bass")[1:] if match.group("bass") else ""
+            full_chord = root + quality + bass
+            self.chords.append(full_chord)
+            self.chord_positions.append((match.start(), match.end()))
+            return full_chord
+
+        #tab = chord_pattern.sub(parse_chord, tab)
+        self.tab = tab
 
 
 def ug_search(value: str) -> List[SearchResult]:
@@ -125,14 +120,14 @@ def ug_search(value: str) -> List[SearchResult]:
 
 
 def get_chords(s: SongDetail):
-    if s.appliciture is None:
+    if s.applicature is None:
         return dict(), dict()
 
     chords = {}
     fingerings = {}
 
-    for chord in s.appliciture:
-        for chord_variant in s.appliciture[chord]:
+    for chord in s.applicature:
+        for chord_variant in s.applicature[chord]:
             frets = chord_variant["frets"]
             min_fret = min(frets)
             max_fret = max(frets)
@@ -184,12 +179,9 @@ def ug_tab(url_path: str):
     bs = BeautifulSoup(resp.text, "html.parser")
     # data can be None
     data = bs.find("div", {"class": "js-store"})
-    # KeyError
     data = data.attrs["data-content"]
     data = json.loads(data)
     s = SongDetail(data)
     s.chords, s.fingers_for_strings = get_chords(s)
-    # print(json.dumps(data, indent=4))
-    # results = data['store']['page']['data']['results']
-    # breakpoint()
+    print(json.dumps(data, indent=4))
     return s
