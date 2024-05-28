@@ -85,8 +85,8 @@
                         <property name="css-classes">monospace</property>
                         <property name="margin-start">50</property>
                         <property name="margin-end">50</property>
-                        <property name="margin-top">20</property>
-                        <property name="margin-bottom">20</property>
+                        <property name="margin-top">0</property>
+                        <property name="margin-bottom">0</property>
                       </object>
                     </child>
                   </object>
