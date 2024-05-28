@@ -1,8 +1,7 @@
+import re
 from typing import List
 
-import html2text
-from gi.repository import Adw
-from gi.repository import Gtk
+from gi.repository import Adw, Gtk, Pango
 from .ug import ug_search, ug_tab, SearchResult
 
 
@@ -23,7 +22,13 @@ class CancioneroWindow(Adw.ApplicationWindow):
         self.results_listbox.connect("row-activated", self.on_result_clicked)
         self.back_button.connect("clicked", self.on_back_button_clicked)
         self.forward_button.connect("clicked", self.on_forward_button_clicked)
-        self.search_entry.get_style_context().add_class("search-entry-title")
+
+        self.buffer = self.song_detail_textview.get_buffer()
+        # Tags for the text view
+        self.chord_tag = self.buffer.create_tag(
+            "chord", foreground="blue", weight=Pango.Weight.BOLD
+        )
+        self.hidden_tag = self.buffer.create_tag("hidden", invisible=True)
 
     def on_search_entry_activate(self, widget):
         search_query = self.search_entry.get_text()
@@ -67,19 +72,45 @@ class CancioneroWindow(Adw.ApplicationWindow):
         self.display_song_detail(song_detail)
 
     def display_song_detail(self, song_detail):
-        # TODO: We need a better way to parse the html. Either display it in a webkit element,
-        # or find a more consistent way of converting to text. Right now, a lot of results
-        # are getting mangled.
-        buffer = self.song_detail_textview.get_buffer()
-        plain_text = html2text.html2text(song_detail.tab)
-        buffer.set_text(plain_text)
+        # clear buffer
+        self.buffer.set_text("")
+        self.add_hidden_markup(song_detail.tab)
+
         self.content_stack.set_visible_child_name("song_detail")
         self.back_button.set_sensitive(
             True
         )  # Enable back button when viewing song details
         self.forward_button.set_sensitive(
             False
-        )  # Disable forward button when on song details page
+        )  # Disable forward button when on song details
+
+    def add_hidden_markup(self, text):
+        # Function to add text with hidden markup
+        chord_pattern = re.compile(
+            r"\[ch\](?P<chord>[A-Ga-g](#|b)?[^[/]*(?:/[^[/]+)?)\[/ch\]"
+        )
+        last_end = 0
+
+        for match in chord_pattern.finditer(text):
+            start, end = match.span()
+            chord = match.group("chord")
+
+            # Insert text before the chord
+            self.buffer.insert(self.buffer.get_end_iter(), text[last_end:start])
+            # Insert the chord with hidden tags around it
+            self.buffer.insert_with_tags_by_name(
+                self.buffer.get_end_iter(), "[ch]", "hidden"
+            )
+            self.buffer.insert_with_tags(
+                self.buffer.get_end_iter(), chord, self.chord_tag
+            )
+            self.buffer.insert_with_tags_by_name(
+                self.buffer.get_end_iter(), "[/ch]", "hidden"
+            )
+            last_end = end
+
+        # Display any text after the last chord
+        self.buffer.insert(self.buffer.get_end_iter(), text[last_end:])
 
     def on_back_button_clicked(self, widget):
         self.content_stack.set_visible_child_name("search_results")
