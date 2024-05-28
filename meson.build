@@ -10,7 +10,6 @@ gnome = import('gnome')
 python3 = import('python').find_installation('python3')
 run_command(python3, '-m', 'pip', 'install', 'requests', check : true)
 run_command(python3, '-m', 'pip', 'install', 'bs4', check : true)
-run_command(python3, '-m', 'pip', 'install', 'html2text', check : true)
 
 subdir('data')
 subdir('src')
