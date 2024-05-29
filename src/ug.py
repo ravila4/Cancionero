@@ -8,6 +8,16 @@ import re
 
 from dataclasses import dataclass, field
 
+from .ast import (
+    ASTNode,
+    LineNode,
+    ChordNode,
+    SpacerNode,
+    SectionHeaderNode,
+    CommentNode,
+    TextNode,
+)
+
 
 @dataclass
 class SearchResult:
@@ -73,6 +83,118 @@ class SongDetail:
     def __repr__(self):
         return f"{self.artist_name} - {self.song_name}"
 
+    def parse_tab_to_ast(self):
+        """
+        Parse the tab string into an AST to annotate:
+        - Chords: [ch]C[/ch]
+        - Section headers: [Header]
+        - Comments: (Comment)
+        - Spacers: 2 or more space characters between chords
+        - Text: any other text
+        """
+        root = ASTNode()
+        lines = self.tab.split("\n")
+
+        for line in lines:
+            line_node = LineNode()
+            root.add_child(line_node)
+            chord_pattern = re.compile(
+                r"\[ch\](?P<chord>[A-Ga-g](#|b)?[^[/]*(?:/[^[/]+)?)\[/ch\]"
+            )
+            last_end = 0
+
+            for chord_match in chord_pattern.finditer(line):
+                if chord_match.start() > last_end:
+                    # Parse any text before the chord
+                    leading_text = line[last_end : chord_match.start()]
+                    # Find any non-space characters in the leading text, allowing one space between words
+                    non_space_pattern = re.compile(r"\s?(?:(?!\s{2,})\S+\s*)+")
+                    last_end_lt = 0
+                    for non_space_match in non_space_pattern.finditer(leading_text):
+                        # Check if match is a section header
+                        if non_space_match.group().startswith(
+                            "["
+                        ) and non_space_match.group().endswith("]"):
+                            # Add any spaces before the section header
+                            if non_space_match.start() > last_end_lt:
+                                spacer = SpacerNode(
+                                    non_space_match.start() - last_end_lt
+                                )  # Length of the spacer
+                                line_node.add_child(spacer)
+                            section_header = SectionHeaderNode(non_space_match.group())
+                            line_node.add_child(section_header)
+                            last_end_lt = non_space_match.end()
+                        # Check if match is a comment
+                        elif non_space_match.group().startswith(
+                            "("
+                        ) and non_space_match.group().endswith(")"):
+                            # Add any spaces before the comment
+                            if non_space_match.start() > last_end_lt:
+                                spacer = SpacerNode(
+                                    non_space_match.start() - last_end_lt
+                                )  # Length of the spacer
+                                line_node.add_child(spacer)
+                            comment = CommentNode(non_space_match.group())
+                            line_node.add_child(comment)
+                            last_end_lt = non_space_match.end()
+                        else:
+                            # Add any spaces before the text
+                            if non_space_match.start() > last_end_lt:
+                                spacer = SpacerNode(non_space_match.start() - last_end_lt)
+                                line_node.add_child(spacer)
+                            # Add the text node
+                            text = TextNode(non_space_match.group())
+                            line_node.add_child(text)
+                        last_end_lt = non_space_match.end()
+                    # Add any spaces before the chord
+                    if chord_match.start() > last_end + last_end_lt:
+                        spacer = SpacerNode(chord_match.start() - last_end)
+                        line_node.add_child(spacer)
+                # Add the chord node
+                chord = chord_match.group("chord")
+                chord_node = ChordNode(chord)
+                line_node.add_child(chord_node)
+                last_end = chord_match.end()
+            # Parse any text after the last chord or if there are no chords
+            if last_end < len(line):
+                trailing_text = line[last_end:]
+                # Find any non-space characters in the trailing text, allowing one space between words
+                non_space_pattern = re.compile(r"\s?(?:(?!\s{2,})\S+\s*)+")
+                last_end_tr = 0
+                for non_space_match in non_space_pattern.finditer(trailing_text):
+                    # Check if match is a section header
+                    if non_space_match.group().startswith(
+                        "["
+                    ) and non_space_match.group().endswith("]"):
+                        # Add any spaces before the section header
+                        if non_space_match.start() > last_end_tr:
+                            spacer = SpacerNode(non_space_match.start() - last_end_tr)
+                            line_node.add_child(spacer)
+                        section_header = SectionHeaderNode(non_space_match.group())
+                        line_node.add_child(section_header)
+                        last_end_tr = non_space_match.end()
+                    # Check if match is a comment
+                    elif non_space_match.group().startswith(
+                        "("
+                    ) and non_space_match.group().endswith(")"):
+                        # Add any spaces before the comment
+                        if non_space_match.start() > last_end_tr:
+                            spacer = SpacerNode(non_space_match.start() - last_end_tr)
+                            line_node.add_child(spacer)
+                        comment = CommentNode(non_space_match.group())
+                        line_node.add_child(comment)
+                        last_end_tr = non_space_match.end()
+                    else:
+                        # Add any spaces before the text
+                        if non_space_match.start() > last_end_tr:
+                            spacer = SpacerNode(non_space_match.start() - last_end_tr)
+                            line_node.add_child(spacer)
+                        # Add the text node
+                        text = TextNode(non_space_match.group())
+                        line_node.add_child(text)
+                    last_end = non_space_match.end()
+        return root
+
     def fix_tab(self):
         tab = self.tab
         # (?P<root>[A-Ga-g](#|b)?) : Chord root is any letter A - G with an optional sharp or flat at the end
@@ -93,7 +215,7 @@ class SongDetail:
             self.chord_positions.append((match.start(), match.end()))
             return full_chord
 
-        #tab = chord_pattern.sub(parse_chord, tab)
+        # tab = chord_pattern.sub(parse_chord, tab)
         self.tab = tab
 
 
@@ -174,7 +296,6 @@ def get_chords(s: SongDetail):
 
 
 def ug_tab(url_path: str):
-    # resp = requests.get("https://tabs.ultimate-guitar.com/tab/rise-against/swing-life-away-chords-262724")
     resp = requests.get("https://tabs.ultimate-guitar.com/" + url_path)
     bs = BeautifulSoup(resp.text, "html.parser")
     # data can be None
