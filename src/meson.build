@@ -28,6 +28,7 @@ configure_file(
 
 cancionero_sources = [
   '__init__.py',
+  'ast.py',
   'ug.py',
   'main.py',
   'window.py',
