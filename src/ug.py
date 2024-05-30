@@ -78,14 +78,13 @@ class SongDetail:
         self.versions = []
         for version in data["store"]["page"]["data"]["tab_view"]["versions"]:
             self.versions.append(SearchResult(version))
-        self.fix_tab()
 
     def __repr__(self):
         return f"{self.artist_name} - {self.song_name}"
 
     def parse_tab_to_ast(self):
         """
-        Parse the tab string into an AST to annotate:
+        Parse the tab string into an abstract syntax tree to annotate:
         - Chords: [ch]C[/ch]
         - Section headers: [Header]
         - Comments: (Comment)
