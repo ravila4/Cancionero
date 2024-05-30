@@ -90,7 +90,7 @@ def test_parse_tab_to_ast_with_comment(make_song_detail):
 
 
 def test_parse_tab_to_ast_joined_chords(make_song_detail):
-    """ Intros sometimes have several chords with single spaces
+    """Intros sometimes have several chords with single spaces
     and or dashes between them
     """
     tab = "[ch]E[/ch] - [ch]Emaj7[/ch] x2 [ch]G#m[/ch] - [ch]A[/ch] - [ch]C#m[/ch]"
@@ -118,3 +118,44 @@ def test_parse_tab_to_ast_joined_chords(make_song_detail):
     assert ast.children[0].children[5].text == " - "
     assert ast.children[0].children[7].text == " - "
 
+
+def test_parse_tab_to_ast_with_multiple_sections(make_song_detail):
+    tab = "\n\n[Verse](all verses follow same progression)\n[ch]A[/ch]"
+    song = make_song_detail(tab)
+    ast = song.parse_tab_to_ast()
+    assert len(ast.children) == 4
+    assert isinstance(ast.children[0], LineNode)
+    assert isinstance(ast.children[1], LineNode)
+    assert isinstance(ast.children[2], LineNode)
+    assert isinstance(ast.children[3], LineNode)
+    assert len(ast.children[0].children) == 0
+    assert len(ast.children[1].children) == 0
+    assert len(ast.children[2].children) == 2
+    assert len(ast.children[3].children) == 1
+    assert isinstance(ast.children[2].children[0], SectionHeaderNode)
+    assert isinstance(ast.children[2].children[1], CommentNode)
+    assert isinstance(ast.children[3].children[0], ChordNode)
+
+
+def test_parse_tab_to_ast_with_return_char(make_song_detail):
+    tab = "\n[Verse 1]\r\n"
+    song = make_song_detail(tab)
+    ast = song.parse_tab_to_ast()
+    assert len(ast.children) == 3
+    assert isinstance(ast.children[0], LineNode)
+    assert isinstance(ast.children[1], LineNode)
+    assert len(ast.children[1].children) == 1
+    assert isinstance(ast.children[1].children[0], SectionHeaderNode)
+    assert ast.children[1].children[0].name == "[Verse 1]"
+
+    
+def test_parse_tab_to_ast_trailing_space(make_song_detail):
+    tab = "[Verse 1] \n"
+    song = make_song_detail(tab)
+    ast = song.parse_tab_to_ast()
+    assert len(ast.children) == 2
+    assert isinstance(ast.children[0], LineNode)
+    assert isinstance(ast.children[1], LineNode)
+    assert len(ast.children[0].children) == 1
+    assert isinstance(ast.children[0].children[0], SectionHeaderNode)
+    assert ast.children[0].children[0].name == "[Verse 1]"
