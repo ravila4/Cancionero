@@ -19,6 +19,7 @@ class ChordNode(ASTNode):
     def transpose(self, amount):
         self.name = transpose_chord(self.name, amount)
 
+
 class TextNode(ASTNode):
     def __init__(self, text):
         super().__init__()
@@ -43,5 +44,4 @@ class CommentNode(ASTNode):
         self.comment = comment
 
 
-def transpose_chord(chord, amount):
-    ...
+def transpose_chord(chord, amount): ...
