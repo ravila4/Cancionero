@@ -304,5 +304,6 @@ def ug_tab(url_path: str):
     data = json.loads(data)
     s = SongDetail(data)
     s.chords, s.fingers_for_strings = get_chords(s)
-    print(json.dumps(data, indent=4))
+    #print(json.dumps(data, indent=4))
+    print(data["store"]["page"]["data"]["tab_view"]["wiki_tab"])
     return s
