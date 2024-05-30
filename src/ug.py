@@ -93,7 +93,7 @@ class SongDetail:
         - Text: any other text
         """
         root = ASTNode()
-        lines = self.tab.split("\n")
+        lines = self.tab.replace("\r", "").split("\n")
 
         for line in lines:
             line_node = LineNode()
