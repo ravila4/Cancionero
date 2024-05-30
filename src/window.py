@@ -2,7 +2,17 @@ import re
 from typing import List
 
 from gi.repository import Adw, Gtk, Pango
-from .ug import ug_search, ug_tab, SearchResult
+
+from .ast import (
+    ASTNode,
+    ChordNode,
+    CommentNode,
+    LineNode,
+    SectionHeaderNode,
+    SpacerNode,
+    TextNode,
+)
+from .ug import SearchResult, SongDetail, ug_search, ug_tab
 
 
 @Gtk.Template(resource_path="/com/github/ravila4/Cancionero/window.ui")
@@ -29,6 +39,10 @@ class CancioneroWindow(Adw.ApplicationWindow):
             "chord", foreground="blue", weight=Pango.Weight.BOLD
         )
         self.hidden_tag = self.buffer.create_tag("hidden", invisible=True)
+        self.section_header_tag = self.buffer.create_tag(
+            "section_header", foreground="gray"
+        )
+        self.comment_tag = self.buffer.create_tag("comment", foreground="gray")
 
     def on_search_entry_activate(self, widget):
         search_query = self.search_entry.get_text()
@@ -71,10 +85,12 @@ class CancioneroWindow(Adw.ApplicationWindow):
         song_detail = ug_tab(song_url)
         self.display_song_detail(song_detail)
 
-    def display_song_detail(self, song_detail):
+    def display_song_detail(self, song_detail: SongDetail):
         # clear buffer
         self.buffer.set_text("")
-        self.add_hidden_markup(song_detail.tab)
+        # parse the tab into a syntax tree
+        ast = song_detail.parse_tab_to_ast()
+        self.apply_formatting_from_ast(self.buffer, ast)
 
         self.content_stack.set_visible_child_name("song_detail")
         self.back_button.set_sensitive(
@@ -84,33 +100,29 @@ class CancioneroWindow(Adw.ApplicationWindow):
             False
         )  # Disable forward button when on song details
 
-    def add_hidden_markup(self, text):
-        # Function to add text with hidden markup
-        chord_pattern = re.compile(
-            r"\[ch\](?P<chord>[A-Ga-g](#|b)?[^[/]*(?:/[^[/]+)?)\[/ch\]"
-        )
-        last_end = 0
+    def apply_formatting_from_ast(self, buffer, ast):
+        def apply_formatting(node, start_iter):
+            if isinstance(node, TextNode):
+                buffer.insert(start_iter, node.text)
+            elif isinstance(node, ChordNode):
+                buffer.insert_with_tags_by_name(start_iter, "[ch]", "hidden")
+                chord_start_iter = buffer.get_end_iter()
+                buffer.insert_with_tags(chord_start_iter, node.name, self.chord_tag)
+                buffer.insert_with_tags_by_name(
+                    buffer.get_end_iter(), "[/ch]", "hidden"
+                )
+            elif isinstance(node, SectionHeaderNode):
+                buffer.insert_with_tags_by_name(start_iter, node.name, "section_header")
+            elif isinstance(node, CommentNode):
+                buffer.insert_with_tags_by_name(start_iter, node.comment, "comment")
+            elif isinstance(node, SpacerNode):
+                buffer.insert(start_iter, " " * node.length)
+            elif isinstance(node, LineNode) or isinstance(node, ASTNode):
+                for child in node.children:
+                    apply_formatting(child, buffer.get_end_iter())
+                buffer.insert(buffer.get_end_iter(), "\n")
 
-        for match in chord_pattern.finditer(text):
-            start, end = match.span()
-            chord = match.group("chord")
-
-            # Insert text before the chord
-            self.buffer.insert(self.buffer.get_end_iter(), text[last_end:start])
-            # Insert the chord with hidden tags around it
-            self.buffer.insert_with_tags_by_name(
-                self.buffer.get_end_iter(), "[ch]", "hidden"
-            )
-            self.buffer.insert_with_tags(
-                self.buffer.get_end_iter(), chord, self.chord_tag
-            )
-            self.buffer.insert_with_tags_by_name(
-                self.buffer.get_end_iter(), "[/ch]", "hidden"
-            )
-            last_end = end
-
-        # Display any text after the last chord
-        self.buffer.insert(self.buffer.get_end_iter(), text[last_end:])
+        apply_formatting(ast, buffer.get_start_iter())
 
     def on_back_button_clicked(self, widget):
         self.content_stack.set_visible_child_name("search_results")
